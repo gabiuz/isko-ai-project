@@ -68,7 +68,7 @@ class ChatBot:
         config=new_config
     )
 
-  # Weather tool will use this function to get up to date weather update
+  # Question tool will use this function to get up to date weather update
   def get_weather(self,location:str):
       """This is a publically available API that returns the weather for a given location."""
       try:
