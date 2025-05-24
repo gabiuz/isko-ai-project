@@ -5,6 +5,7 @@ import time
 import os
 import requests
 from dotenv import load_dotenv
+from bs4 import BeautifulSoup
 
 load_dotenv()
 # Initialize your variables
@@ -69,23 +70,26 @@ class ChatBot:
     )
 
   # Weather tool will use this function to get up to date weather update
-  def get_weather(self,location:str):
-      """This is a publically available API that returns the weather for a given location."""
+  def get_question(self,question:str):
+      """Scrape data from PUP site"""
       try:
-        location = location.replace(' ','+')
+        headers = {
+            "User-Agent": "Mozilla/5.0 (compatible; MyChatBot/1.0; +https://yourdomain.com)"
+        }
         response = requests.get(
-            f"https://geocoding-api.open-meteo.com/v1/search?name={location}&count=10&language=en&format=json"
+            "https://www.pup.edu.ph/"
         )
-        data = response.json()
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
 
-        latitude, longitude = data["results"][0]["latitude"], data["results"][0]["longitude"]
-        response = requests.get(
-            f"https://api.open-meteo.com/v1/forecast?latitude={latitude}&longitude={longitude}&current=temperature_2m,wind_speed_10m&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m"
-        )
-        data = response.json()
-        return data["current"]
-      except:
-        return "Invalid location"
+
+        headlines = soup.find_all('div', class_='news')  # adjust class based on real site
+        extracted = [item.get_text(strip=True) for item in headlines]
+
+        return extracted or "No relevant info found."
+      except Exception as e:
+        return f"Error fetching data: {e}"
 
   # Refactor the invoke function to support function result and return in a natural language tone
   def process_user_message(self, user_query):
