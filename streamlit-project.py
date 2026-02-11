@@ -1,38 +1,33 @@
 import streamlit as st
 from google import genai
 from google.genai import types
-import time
 import os
-import requests
 from dotenv import load_dotenv
 
 load_dotenv()
+
 # Initialize your variables
 CLIENT = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+<<<<<<< HEAD
 MODEL = 'gemini-2.0-flash'
 INSTRUCTIONS = 'You are a friendly chatbot'
+=======
+MODEL = 'gemini-2.5-flash'
+INSTRUCTIONS = """You are a friendly chatbot for Polytechnic University of the Philippines. 
+Provide detailed info on admissions, academics, campus life, document requests, and student services.
+For document requests, students typically need to fill out a form from the Registrar's Office, submit valid ID, and pay the processing fee. 
+If unsure, direct them to https://www.pup.edu.ph/registrar or student services.
+Use the Google Search tool to find the latest announcements, news, or events from the official PUP Facebook page or other social media channels when asked about recent updates."""
+
+>>>>>>> 2480bb1 (hehe)
 TEMPERATURE = 0.25
 TOP_P = 0.8
 MAX_OUTPUT_TOKENS = 1024
 
-# Setup your tool schema
-question_tool = {
-    "name": "get_question",
-    "description": "Useful when you want to get the question from the user",
-    "parameters": {
-        "type": "object",
-        "properties":{
-            "question": {
-                "type": "string",
-                "description": "Question from the user"
-            }
-        },
-        "required":["question"]
-    }
-}
-
 # Bind your tools together
-tools = types.Tool(functionDeclarations=[question_tool])
+tools = types.Tool(
+    google_search_retrieval=types.GoogleSearchRetrieval()
+)
 
 class ChatBot:
   def __init__(self):
@@ -48,6 +43,7 @@ class ChatBot:
         )
     )
 
+<<<<<<< HEAD
   # Use to update configuration
   def update_chatbot_setting(self,
                              system_instruction=INSTRUCTIONS,
@@ -86,12 +82,19 @@ class ChatBot:
         return data["current"]
       except:
         return "Invalid location"
+=======
+
+
+
+>>>>>>> 2480bb1 (hehe)
 
   # Refactor the invoke function to support function result and return in a natural language tone
   def process_user_message(self, user_query):
-
-      # Call send_message (as a stream)
+      # Stream the response
+      # With Google Search Grounding, the model handles the search server-side and returns the text directly.
+      # We just need to stream the chunks.
       for chunk in self.chat.send_message_stream(user_query):
+<<<<<<< HEAD
 
           # Check if the model calls the function
           if chunk.candidates[0].content.parts[0].function_call:
@@ -133,6 +136,10 @@ class ChatBot:
           else:
               if hasattr(chunk, 'text'):
                   yield chunk.text
+=======
+          if chunk.text:
+              yield chunk.text
+>>>>>>> 2480bb1 (hehe)
 
 
 if 'chat_session' not in st.session_state:
@@ -145,33 +152,14 @@ if 'messages' not in st.session_state:
 
 
 # Build your own chatbot
-st.title('Goodmorning, iskolar!')
-st.write("Get instant answers about admissions, academics, campus life, and more at Polytechnic University of the Philippines. Available 24/7 to help you succeed. ")
+st.title('Good morning, Iskolar!')
+st.write("Get instant answers about admissions, academics, campus life, and more at Polytechnic University of the Philippines. Available 24/7 to help you succeed.")
 
 for message in st.session_state.messages:
     with st.chat_message(message['role']):
         st.markdown(message['content'])
 
-with st.sidebar:
-    st.title('Settings')
-    st.divider()
 
-    instructions = st.text_input('Instructions',INSTRUCTIONS)
-    temperature = st.slider('Temperature',0.0,2.0,TEMPERATURE,0.01)
-    top_p = st.slider('Top P',0.0,1.0,TOP_P,0.01)
-    max_output_tokens = st.slider('Max Output Tokens',-1,1024,MAX_OUTPUT_TOKENS,1)
-
-    if st.button('Update Setting'):
-      try:
-        st.session_state.chat_session.update_chatbot_setting(
-            system_instruction=instructions,
-            temperature=temperature,
-            top_p=top_p,
-            max_output_tokens=max_output_tokens
-        )
-        st.success('Setting Updated!')
-      except Exception as e:
-        st.error(f'Error: {e}')
 
 
 if prompt := st.chat_input('Ask me anything!'):
@@ -182,6 +170,15 @@ if prompt := st.chat_input('Ask me anything!'):
 
     with st.chat_message('assistant'):
         with st.spinner('Thinking...'):
-          response = st.write_stream(st.session_state.chat_session.process_user_message(prompt))      # The function is called here using our new and improved send message function
+            # Collect the full response to store in history
+            full_response = ""
+            response_container = st.empty()
+            
+            # Stream the response
+            for chunk in st.session_state.chat_session.process_user_message(prompt):
+                full_response += chunk
+                response_container.markdown(full_response + "▌")
+            
+            response_container.markdown(full_response)
 
-    st.session_state.messages.append({'role': 'assistant', 'content': response})
+    st.session_state.messages.append({'role': 'assistant', 'content': full_response})
